@@ -188,7 +188,7 @@ export default function OrdersScreen() {
               />
             )}
             keyExtractor={(item) => item.internalId || item.id} // Используем internalId если есть
-            contentContainerStyle={{ paddingBottom: 50 }}
+            contentContainerStyle={{ paddingBottom: 193 }}
           />
         ) : (
           <View className="items-center justify-center py-16">

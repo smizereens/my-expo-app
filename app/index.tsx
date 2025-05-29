@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -72,32 +72,98 @@ export default function Home() {
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     .slice(0, 5);
 
-  if (isLoading) {
-    return (
-      <Container>
-        <Header title="Управление заказами" />
-        <View className="flex-1 items-center justify-center">
+  // Создаем данные для FlatList (статистика + заказы)
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <View className="flex-1 items-center justify-center py-16">
           <ActivityIndicator size="large" color="#4F46E5" />
         </View>
-      </Container>
-    );
-  }
+      );
+    }
 
-  if (error) {
-    return (
-      <Container>
-        <Header title="Ошибка" />
+    if (error) {
+      return (
         <View className="flex-1 items-center justify-center p-4">
           <Ionicons name="cloud-offline-outline" size={48} color="#EF4444" />
           <Text className="text-red-500 text-lg mt-4 text-center">{error}</Text>
           <Button title="Попробовать снова" onPress={loadDashboardData} className="mt-6" />
         </View>
-      </Container>
+      );
+    }
+
+    return (
+      <FlatList
+        data={[{ type: 'content' }]} // Фиктивные данные для FlatList
+        renderItem={() => (
+          <View className="p-4">
+            <Text className="text-xl font-bold text-neutral-900 mb-4">Обзор</Text>
+            {/* Карточки со статистикой */}
+            <View className="flex-row flex-wrap -mx-2">
+              <StatCard 
+                title="Всего заказов"
+                value={stats.totalOrders.toString()}
+                icon="document-text-outline"
+                color="primary"
+                className="w-1/2"
+              />
+              <StatCard 
+                title="Новых"
+                value={stats.newOrders.toString()}
+                icon="hourglass-outline"
+                color="info"
+                className="w-1/2" 
+              />
+              <StatCard 
+                title="Выполнено"
+                value={stats.completedOrders.toString()}
+                icon="checkmark-circle-outline"
+                color="success"
+                className="w-1/2"
+              />
+              <StatCard 
+                title="Выручка"
+                value={`${stats.revenue.toLocaleString()} ₽`}
+                icon="cash-outline"
+                color="accent"
+                className="w-1/2"
+              />
+            </View>
+
+            {/* Последние заказы */}
+            <View className="mt-6">
+              <View className="flex-row justify-between items-center mb-3">
+                <Text className="text-lg font-semibold text-neutral-900">Последние заказы</Text>
+                <TouchableOpacity onPress={() => router.push('/orders')}>
+                  <Text className="text-primary-600 font-medium text-sm">Все заказы</Text>
+                </TouchableOpacity>
+              </View>
+
+              {recentOrders.length > 0 ? (
+                recentOrders.map((order) => (
+                  <OrderCard 
+                    key={order.internalId || order.id}
+                    order={order} 
+                    onPress={() => router.push({
+                      pathname: '/order-details',
+                      params: { id: order.internalId || order.id } 
+                    })}
+                  />
+                ))
+              ) : (
+                <Text className="text-neutral-500 text-center py-8">Нет недавних заказов.</Text>
+              )}
+            </View>
+          </View>
+        )}
+        keyExtractor={() => 'content'}
+        contentContainerStyle={{ paddingBottom: 0 }}
+      />
     );
-  }
+  };
 
   return (
-    <Container scrollable padded={false}>
+    <Container padded={false}>
       <Header 
         title="Управление заказами" 
         rightAction={
@@ -109,65 +175,7 @@ export default function Home() {
         } 
       />
 
-      <View className="p-4">
-        <Text className="text-xl font-bold text-neutral-900 mb-4">Обзор</Text>
-        {/* Карточки со статистикой */}
-        <View className="flex-row flex-wrap -mx-2">
-          <StatCard 
-            title="Всего заказов"
-            value={stats.totalOrders.toString()}
-            icon="document-text-outline"
-            color="primary"
-            className="w-1/2"
-          />
-          <StatCard 
-            title="Новых"
-            value={stats.newOrders.toString()}
-            icon="hourglass-outline"
-            color="info"
-            className="w-1/2" 
-          />
-          <StatCard 
-            title="Выполнено"
-            value={stats.completedOrders.toString()}
-            icon="checkmark-circle-outline"
-            color="success"
-            className="w-1/2"
-          />
-          <StatCard 
-            title="Выручка"
-            value={`${stats.revenue.toLocaleString()} ₽`}
-            icon="cash-outline"
-            color="accent"
-            className="w-1/2"
-          />
-        </View>
-
-        {/* Последние заказы */}
-        <View className="mt-6">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-lg font-semibold text-neutral-900">Последние заказы</Text>
-            <TouchableOpacity onPress={() => router.push('/orders')}>
-              <Text className="text-primary-600 font-medium text-sm">Все заказы</Text>
-            </TouchableOpacity>
-          </View>
-
-          {recentOrders.length > 0 ? (
-            recentOrders.map((order) => (
-              <OrderCard 
-                key={order.internalId || order.id}
-                order={order} 
-                onPress={() => router.push({
-                  pathname: '/order-details',
-                  params: { id: order.internalId || order.id } 
-                })}
-              />
-            ))
-          ) : (
-            <Text className="text-neutral-500 text-center py-8">Нет недавних заказов.</Text>
-          )}
-        </View>
-      </View>
+      {renderContent()}
     </Container>
   );
 }

@@ -8,7 +8,7 @@ import axios from 'axios';
 // Если бэкенд запущен на той же машине, что и симулятор/эмулятор.
 // const API_BASE_URL = 'http://localhost:3001/api';
 // const API_BASE_URL = 'http://10.0.2.2:3001/api'; // Для Android Emulator, если бэкенд на той же машине
-const API_BASE_URL = 'http://192.168.0.105:3001/api'; // Для физического устройства или Expo Go на телефоне в той же сети
+const API_BASE_URL = 'http://192.168.0.100:3001/api'; // Для физического устройства или Expo Go на телефоне в той же сети
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
