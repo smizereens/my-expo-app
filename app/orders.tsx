@@ -1,42 +1,32 @@
-import { useState, useEffect, useCallback } from 'react'; // Добавляем useCallback
-import { View, Text, FlatList, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native'; // Добавляем ActivityIndicator
+// app/orders.tsx - обновленная версия с фильтром архива
+
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Container } from '~/components/Container';
 import { Header } from '~/components/Header';
 import { Badge } from '~/components/Badge';
-// Order и OrderStatus из OrderCard должны быть совместимы с OrderFromList
-// или OrderFromList нужно адаптировать для OrderCard
 import { OrderCard, Order as UiOrder, OrderStatus } from '~/components/OrderCard';
 import { fetchOrders, OrderFromList } from '~/services/orderService';
 
-// Убираем generateOrders
-
-// Сопоставляем OrderFromList с UiOrder, если необходимо, или используем OrderFromList напрямую в OrderCard
-// Для простоты предположим, что OrderFromList достаточно совместим с UiOrder
-// или что OrderCard может принять OrderFromList.
-// Если нет, здесь нужна функция-маппер.
-// Важно: поле items в UiOrder было number, а в OrderFromList это itemCount.
-// Поле total в UiOrder было number, в OrderFromList это totalAmount.
-// Поле createdAt в UiOrder было Date, в OrderFromList это string.
-
+// Маппинг OrderFromList к UiOrder
 const mapApiOrderToUiOrder = (apiOrder: OrderFromList): UiOrder => ({
-  id: apiOrder.displayId, // Используем displayId для отображения, но id для навигации
-  internalId: apiOrder.id, // Сохраняем реальный UUID для навигации
+  id: apiOrder.displayId,
+  internalId: apiOrder.id,
   customerName: apiOrder.customerName,
   total: apiOrder.totalAmount,
-  items: apiOrder.itemCount, // Используем itemCount
-  createdAt: new Date(apiOrder.createdAt), // Преобразуем строку в Date
-  status: apiOrder.status as OrderStatus, // Приводим к локальному типу статуса
+  items: apiOrder.itemCount,
+  createdAt: new Date(apiOrder.createdAt),
+  status: apiOrder.status as OrderStatus,
 });
 
-
 export default function OrdersScreen() {
-  const [allOrders, setAllOrders] = useState<UiOrder[]>([]); // Для подсчета в фильтрах
+  const [allOrders, setAllOrders] = useState<UiOrder[]>([]);
   const [displayedOrders, setDisplayedOrders] = useState<UiOrder[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<OrderStatus | 'all'>('all'); // OrderStatus теперь 'NEW', 'PROCESSING' и т.д.
+  const [activeFilter, setActiveFilter] = useState<OrderStatus | 'all'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,15 +45,10 @@ export default function OrdersScreen() {
       const apiOrders = await fetchOrders(params);
       setDisplayedOrders(apiOrders.map(mapApiOrderToUiOrder));
 
-      // Для подсчета в фильтрах, загрузим все заказы один раз или при сбросе фильтров
-      // Это не оптимально, если заказов очень много.
-      // В идеале, API должен возвращать и количество по статусам.
-      // Пока что, если фильтр или поиск активны, счетчики могут быть неточными
-      // или мы загружаем все заказы для точного подсчета.
-      // Для MVP можно упростить: загружать все при 'all' и считать.
+      // Для подсчета в фильтрах, загружаем все заказы
       if (activeFilter === 'all' && searchQuery.trim() === '') {
         setAllOrders(apiOrders.map(mapApiOrderToUiOrder));
-      } else if (allOrders.length === 0) { // Загрузить все, если еще не загружены
+      } else if (allOrders.length === 0) {
         const allApiOrders = await fetchOrders();
         setAllOrders(allApiOrders.map(mapApiOrderToUiOrder));
       }
@@ -71,25 +56,24 @@ export default function OrdersScreen() {
     } catch (err) {
       console.error("Ошибка загрузки заказов:", err);
       setError('Не удалось загрузить заказы.');
-      setDisplayedOrders([]); // Очищаем список при ошибке
+      setDisplayedOrders([]);
     } finally {
       setIsLoading(false);
     }
-  }, [activeFilter, searchQuery, allOrders.length]); // Добавляем allOrders.length в зависимости
+  }, [activeFilter, searchQuery, allOrders.length]);
 
   useEffect(() => {
     loadOrders();
-  }, [loadOrders]); // Вызываем loadOrders при изменении activeFilter или searchQuery
+  }, [loadOrders]);
 
-  // Обновляем подсчет для фильтров на основе allOrders
-  const filters: { label: string; value: OrderStatus | 'all'; count: number }[] = [
+  // Обновленные фильтры с архивом
+  const filters: { label: string; value: OrderStatus | 'all'; count: number; isArchive?: boolean }[] = [
     { label: 'Все', value: 'all', count: allOrders.length },
     { label: 'Новые', value: 'NEW', count: allOrders.filter(o => o.status === 'NEW').length },
     { label: 'В работе', value: 'PROCESSING', count: allOrders.filter(o => o.status === 'PROCESSING').length },
     { label: 'Готовые', value: 'COMPLETED', count: allOrders.filter(o => o.status === 'COMPLETED').length },
     { label: 'Отменены', value: 'CANCELLED', count: allOrders.filter(o => o.status === 'CANCELLED').length },
-    // Можно добавить фильтр для ARCHIVED, если нужно
-    // { label: 'Архивные', value: 'ARCHIVED', count: allOrders.filter(o => o.status === 'ARCHIVED').length },
+    { label: 'Архив', value: 'ARCHIVED', count: allOrders.filter(o => o.status === 'ARCHIVED').length, isArchive: true },
   ];
 
   return (
@@ -122,8 +106,8 @@ export default function OrdersScreen() {
           contentContainerStyle={{ paddingRight: 16 }}
         >
           {filters.map((item) => {
-            // Вычисляем минимальную ширину для каждого фильтра
-            const minWidth = item.label === 'В работе' ? 90 : item.label === 'Готовые' ? 90 : item.label === 'Отменены' ? 90 : 60;
+            const isActive = activeFilter === item.value;
+            const isArchiveFilter = item.isArchive;
             
             return (
               <TouchableOpacity
@@ -131,13 +115,29 @@ export default function OrdersScreen() {
                 onPress={() => setActiveFilter(item.value)}
                 style={{minHeight: 31}}
                 className={`px-3 py-2 mr-2 rounded-full border ${
-                  activeFilter === item.value ? 'bg-primary-50 border-primary-200' : 'bg-white border-neutral-200'
+                  isActive 
+                    ? isArchiveFilter 
+                      ? 'bg-neutral-50 border-neutral-300' 
+                      : 'bg-primary-50 border-primary-200'
+                    : 'bg-white border-neutral-200'
                 }`}
               >
                 <View className="flex-row items-center justify-center">
+                  {isArchiveFilter && (
+                    <Ionicons 
+                      name="archive-outline" 
+                      size={12} 
+                      color={isActive ? '#374151' : '#6B7280'} 
+                      style={{ marginRight: 4 }} 
+                    />
+                  )}
                   <Text 
                     className={`font-medium text-center ${
-                      activeFilter === item.value ? 'text-primary-700' : 'text-neutral-700'
+                      isActive 
+                        ? isArchiveFilter 
+                          ? 'text-neutral-700' 
+                          : 'text-primary-700'
+                        : 'text-neutral-700'
                     }`}
                     numberOfLines={1}
                     style={{ fontSize: 13 }}
@@ -146,12 +146,20 @@ export default function OrdersScreen() {
                   </Text>
                   <View 
                     className={`ml-1.5 px-1.5 rounded-full ${
-                      activeFilter === item.value ? 'bg-primary-100' : 'bg-neutral-100'
+                      isActive 
+                        ? isArchiveFilter 
+                          ? 'bg-neutral-200' 
+                          : 'bg-primary-100'
+                        : 'bg-neutral-100'
                     }`}
                   >
                     <Text 
                       className={`text-xs font-medium ${
-                        activeFilter === item.value ? 'text-primary-700' : 'text-neutral-600'
+                        isActive 
+                          ? isArchiveFilter 
+                            ? 'text-neutral-700' 
+                            : 'text-primary-700'
+                          : 'text-neutral-600'
                       }`}
                     >
                       {item.count}
@@ -182,20 +190,28 @@ export default function OrdersScreen() {
                 order={item}
                 onPress={(order) => router.push({
                   pathname: '/order-details',
-                  // Используем internalId (реальный UUID) для навигации к деталям
                   params: { id: order.internalId }
                 })}
               />
             )}
-            keyExtractor={(item) => item.internalId || item.id} // Используем internalId если есть
+            keyExtractor={(item) => item.internalId || item.id}
             contentContainerStyle={{ paddingBottom: 193 }}
           />
         ) : (
           <View className="items-center justify-center py-16">
-            <Ionicons name="document-text-outline" size={48} color="#9CA3AF" />
-            <Text className="text-neutral-500 text-base mt-2">Нет заказов</Text>
+            <Ionicons 
+              name={activeFilter === 'ARCHIVED' ? 'archive-outline' : 'document-text-outline'} 
+              size={48} 
+              color="#9CA3AF" 
+            />
+            <Text className="text-neutral-500 text-base mt-2">
+              {activeFilter === 'ARCHIVED' ? 'Нет архивированных заказов' : 'Нет заказов'}
+            </Text>
             <Text className="text-neutral-400 text-sm text-center mt-1">
-              Попробуйте изменить параметры поиска или фильтры
+              {activeFilter === 'ARCHIVED' 
+                ? 'Архивированные заказы появятся здесь'
+                : 'Попробуйте изменить параметры поиска или фильтры'
+              }
             </Text>
           </View>
         )}

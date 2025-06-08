@@ -15,7 +15,7 @@ const tabs: TabItem[] = [
   { name: 'home', label: 'Главная', icon: 'home-outline', href: '/' },
   { name: 'orders', label: 'Заказы', icon: 'list-outline', href: '/orders' },
   { name: 'new', label: 'Новый', icon: 'add-circle', href: '/new-order' },
-  { name: 'products', label: 'Товары', icon: 'cube-outline', href: '/manage-products' }, // Заменяем Статистику на Товары
+  { name: 'products', label: 'Товары', icon: 'cube-outline', href: '/manage-products' },
   { name: 'profile', label: 'Профиль', icon: 'person-outline', href: '/profile' },
 ];
 

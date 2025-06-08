@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
-import { PrismaClient, Prisma, OrderStatus } from '@prisma/client'; // Попробуем импортировать OrderStatus напрямую
+import { PrismaClient, Prisma, OrderStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 const router = express.Router();
