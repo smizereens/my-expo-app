@@ -2,6 +2,7 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken } from './middleware/auth';
 
 dotenv.config(); // Загружает переменные окружения из .env файла
 
@@ -15,22 +16,22 @@ app.use(cors()); // Разрешает CORS-запросы (важно для в
 app.use(express.json()); // Для парсинга JSON-тел запросов
 app.use(express.urlencoded({ extended: true })); // Для парсинга URL-encoded тел запросов
 
-// Простой тестовый роут
+// Простой тестовый роут (публичный)
 app.get('/api', (req: Request, res: Response) => {
   res.json({ message: 'Добро пожаловать в API управления заказами!' });
 });
 
-// Импорт роутов для товаров
+// Импорт и подключение auth роутов (ПУБЛИЧНЫЕ)
+import authRoutes from './routes/authRoutes';
+app.use('/api/auth', authRoutes);
+
+// Импорт защищенных роутов
 import productRoutes from './routes/productRoutes';
-
-// Используем роуты для товаров
-app.use('/api/products', productRoutes);
-
-// Импорт роутов для заказов
 import orderRoutes from './routes/orderRoutes';
 
-// Используем роуты для заказов
-app.use('/api/orders', orderRoutes);
+// Применяем middleware аутентификации ко всем защищенным роутам
+app.use('/api/products', authenticateToken, productRoutes);
+app.use('/api/orders', authenticateToken, orderRoutes);
 
 // Обработчик ошибок (простой)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -41,6 +42,11 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
 const server = app.listen(port, () => {
   console.log(`[server]: Сервер запущен на http://localhost:${port}`);
+  console.log(`[server]: API endpoints:`);
+  console.log(`[server]: POST http://localhost:${port}/api/auth/login - Авторизация`);
+  console.log(`[server]: GET  http://localhost:${port}/api/auth/me - Информация о пользователе`);
+  console.log(`[server]: GET  http://localhost:${port}/api/products - Товары (требует токен)`);
+  console.log(`[server]: GET  http://localhost:${port}/api/orders - Заказы (требует токен)`);
 });
 
 // Graceful shutdown
