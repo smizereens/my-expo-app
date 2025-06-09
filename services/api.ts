@@ -14,6 +14,37 @@ const apiClient = axios.create({
   timeout: 10000, // 10 секунд таймаут
 });
 
+
+// Перехватчик запросов для автоматического добавления токена
+apiClient.interceptors.request.use(
+  async (config) => {
+    // Логирование в development
+    if (__DEV__) {
+      console.log(`🟢 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      if (config.data) {
+        console.log('Request Data:', config.data);
+      }
+    }
+
+    // Добавляем токен авторизации, если он есть
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const token = await AsyncStorage.getItem('auth_token');
+      if (token && !config.headers.Authorization) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.warn('⚠️ Не удалось получить токен из AsyncStorage:', error);
+    }
+
+    return config;
+  },
+  (error) => {
+    console.error('🔴 API Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
 // Перехватчик ответов для обработки ошибок
 apiClient.interceptors.response.use(
   (response) => {

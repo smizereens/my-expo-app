@@ -28,10 +28,12 @@ app.use('/api/auth', authRoutes);
 // Импорт защищенных роутов
 import productRoutes from './routes/productRoutes';
 import orderRoutes from './routes/orderRoutes';
+import userRoutes from './routes/userRoutes';
 
 // Применяем middleware аутентификации ко всем защищенным роутам
 app.use('/api/products', authenticateToken, productRoutes);
 app.use('/api/orders', authenticateToken, orderRoutes);
+app.use('/api/users', authenticateToken, userRoutes);
 
 // Обработчик ошибок (простой)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
