@@ -117,9 +117,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const { user } = await authService.login(credentials);
       dispatch({ type: 'AUTH_SUCCESS', payload: user });
     } catch (error: any) {
-      const errorMessage = error.error || error.message || 'Ошибка входа в систему';
+      // Убеждаемся, что всегда есть понятное сообщение об ошибке
+      let errorMessage = 'Ошибка входа в систему';
+      
+      if (error?.error) {
+        errorMessage = error.error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
       dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
-      throw error; // Пробрасываем ошибку для обработки в компоненте
+      throw { error: errorMessage }; // Пробрасываем ошибку для обработки в компоненте
     }
   };
 

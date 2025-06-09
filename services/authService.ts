@@ -23,21 +23,27 @@ export interface LoginResponse {
 
 class AuthService {
   // Вход в систему
-  async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    try {
-      const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
-      const { token, user } = response.data;
-      
-      // Сохраняем токен и данные пользователя
-      await this.setAuthData(token, user);
-      
-      console.log('✅ Успешная авторизация:', user.username);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Ошибка авторизации:', error.response?.data || error.message);
-      throw error.response?.data || new Error('Ошибка входа в систему');
+async login(credentials: LoginCredentials): Promise<LoginResponse> {
+  try {
+    const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
+    const { token, user } = response.data;
+    
+    // Сохраняем токен и данные пользователя
+    await this.setAuthData(token, user);
+    
+    console.log('✅ Успешная авторизация:', user.username);
+    return response.data;
+  } catch (error: any) {
+    // Для ошибок логина не логируем как критические - это нормальная ситуация
+    if (__DEV__) {
+      console.log('ℹ️ Неудачная попытка входа:', error?.error || 'Неверные данные');
     }
+    
+    // Убеждаемся, что возвращаем понятное сообщение об ошибке
+    const errorMessage = error?.error || error?.message || 'Ошибка входа в систему';
+    throw { error: errorMessage };
   }
+}
 
   // Выход из системы
   async logout(): Promise<void> {

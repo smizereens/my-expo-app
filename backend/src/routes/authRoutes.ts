@@ -12,7 +12,6 @@ const SALT_ROUNDS = 10;
 
 // POST /api/auth/login - Авторизация
 router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
-  console.log('[AUTH]: Попытка входа для:', req.body.username);
   try {
     const { username, password } = req.body as { username?: string; password?: string };
 
@@ -26,19 +25,17 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
     });
 
     if (!user) {
-      console.log('[AUTH]: Пользователь не найден:', username);
+      // Для безопасности используем одинаковое сообщение для несуществующего пользователя и неверного пароля
       return res.status(401).json({ error: 'Неверный логин или пароль' });
     }
 
     if (!user.isActive) {
-      console.log('[AUTH]: Пользователь деактивирован:', username);
       return res.status(401).json({ error: 'Аккаунт деактивирован' });
     }
 
     // Проверить пароль
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      console.log('[AUTH]: Неверный пароль для:', username);
       return res.status(401).json({ error: 'Неверный логин или пароль' });
     }
 
@@ -60,7 +57,7 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
     });
   } catch (error) {
     console.error('Ошибка при авторизации:', error);
-    next(error);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
   }
 });
 
@@ -109,7 +106,7 @@ router.post('/create-user', authenticateToken, requireRole(['admin']), async (re
     res.status(201).json(newUser);
   } catch (error) {
     console.error('Ошибка при создании пользователя:', error);
-    next(error);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
   }
 });
 
@@ -140,7 +137,7 @@ router.get('/users', authenticateToken, requireRole(['admin']), async (req: Auth
     res.json(users);
   } catch (error) {
     console.error('Ошибка при получении списка пользователей:', error);
-    next(error);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
   }
 });
 
@@ -178,7 +175,7 @@ router.put('/users/:id/toggle', authenticateToken, requireRole(['admin']), async
     res.json(updatedUser);
   } catch (error) {
     console.error('Ошибка при изменении статуса пользователя:', error);
-    next(error);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
   }
 });
 

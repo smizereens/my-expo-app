@@ -14,6 +14,8 @@ export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);  
 
   const handleLogin = async () => {
     // Валидация
@@ -33,15 +35,9 @@ export default function LoginScreen() {
       // После успешного логина AuthContext автоматически перенаправит на главный экран
     } catch (error: any) {
       // Ошибка уже обработана в AuthContext, показываем пользователю
-      const errorMessage = error.error || error.message || 'Неизвестная ошибка';
+      const errorMessage = error.error || error.message || 'Неизвестная ошибка';    
       Alert.alert('Ошибка входа', errorMessage);
     }
-  };
-
-  // Быстрый вход для тестирования (только в development)
-  const handleQuickLogin = () => {
-    setUsername('admin');
-    setPassword('admin123');
   };
 
   return (
@@ -109,7 +105,7 @@ export default function LoginScreen() {
           </Card>
 
           {/* Быстрый вход для разработки */}
-          {__DEV__ && (
+          {/* {__DEV__ && (
             <View className="items-center">
               <Text className="text-neutral-500 text-sm mb-2">Для тестирования:</Text>
               <Button
@@ -120,7 +116,7 @@ export default function LoginScreen() {
                 icon={<Ionicons name="flash" size={16} color="#4F46E5" />}
               />
             </View>
-          )}
+          )} */}
 
           {/* Информация */}
           <View className="mt-8 items-center">
